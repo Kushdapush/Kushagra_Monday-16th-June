@@ -307,6 +307,81 @@ Loop-Assignment/
 
 ---
 
+## 🧮 Business Hours Overlap & Uptime Calculation Logic
+
+### Overview
+Our algorithm calculates uptime/downtime by finding overlaps between time periods and business hours, ensuring we only count operational hours.
+
+### 🔹 How It Works
+
+#### **1. Define Time Periods**
+```python
+# Calculate periods relative to the latest data timestamp
+max_timestamp = get_max_timestamp_utc()
+periods = {
+    'last_hour': max_timestamp - timedelta(hours=1),
+    'last_day': max_timestamp - timedelta(days=1), 
+    'last_week': max_timestamp - timedelta(weeks=1)
+}
+```
+
+#### **2. Status Interpolation**
+We fill gaps between status observations by assuming the last known status continues:
+
+```python
+# Example: If we have observations at 10:00 AM (active) and 2:00 PM (inactive)
+# We assume the store was active from 10:00 AM to 2:00 PM
+```
+
+#### **3. Business Hours Segments**
+For each day in the analysis period, we create time segments when the store is supposed to be open:
+
+```python
+# Example: Store open 9 AM - 5 PM, Monday-Friday
+# Creates segments: Mon 9-5, Tue 9-5, Wed 9-5, etc.
+# Skips weekends if store is closed
+```
+
+#### **4. Calculate Overlaps**
+We find where status segments overlap with business hour segments:
+
+```python
+def calculate_overlap(status_segment, business_segment):
+    start = max(status_segment.start, business_segment.start)
+    end = min(status_segment.end, business_segment.end)
+    
+    if start < end:
+        return end - start  # Duration of overlap
+    return 0  # No overlap
+```
+
+#### **5. Sum Up Results**
+- **Uptime**: Sum of all overlaps where status = 'active'
+- **Downtime**: Sum of all overlaps where status = 'inactive'
+
+### 🔹 Simple Example
+
+**Store Data:**
+- Business Hours: Mon-Fri 9 AM - 5 PM
+- Status: Mon 10 AM = Active, Mon 2 PM = Inactive, Mon 4 PM = Active
+
+**Calculation for Monday:**
+```
+Business Hours: 9 AM ────────────────── 5 PM
+Status Timeline: 9AM──10AM──2PM──4PM──5PM
+                 ???  ACTIVE  INACTIVE ACTIVE
+
+Result:
+- 9-10 AM: Unknown → Assume Active = 1 hour uptime
+- 10 AM-2 PM: Active = 4 hours uptime  
+- 2-4 PM: Inactive = 2 hours downtime
+- 4-5 PM: Active = 1 hour uptime
+
+Total: 6 hours uptime, 2 hours downtime
+```
+
+---
+
 ## 📊 Sample Report Output
 
 ```csv
@@ -330,5 +405,38 @@ The API includes several debug endpoints to help monitor system health:
 - **Status Distribution**: Verify active vs inactive status ratios
 - **Store-Level Analysis**: Deep dive into specific store calculations
 - **Downtime Identification**: Quickly identify problematic stores
+
+---
+
+## 🚀 Solution Improvements
+
+### 🔹 Performance Optimizations
+- **Database Indexing**: Add indexes on `(store_id, timestamp_utc)` for faster queries
+- **Caching**: Cache business hours and timezone data in Redis
+- **Batch Processing**: Process multiple stores in parallel
+- **Connection Pooling**: Use pgbouncer for better database performance
+
+### 🔹 Data Quality Improvements  
+- **Data Validation**: Validate CSV data format and detect anomalies
+- **Audit Logging**: Track all data changes and report generations
+
+### 🔹 API Enhancements
+- **Multiple Export Formats**: Support JSON, Excel exports
+- **Store Filtering**: Filter reports by store region, type, etc.
+- **Rate Limiting**: Prevent API abuse
+
+### 🔹 Infrastructure Improvements
+- **Containerization**: Add Docker support for easy deployment
+- **Health Monitoring**: Add comprehensive health checks
+- **Security**: Add authentication and encrypt sensitive data
+- **Scalability**: Support horizontal scaling with load balancers
+
+### 🔹 Business Features
+- **Alerting**: Send alerts when stores go offline
+- **Dashboards**: Real-time monitoring dashboards
+- **Scheduled Reports**: Automatic daily/weekly reports
+- **Mobile App**: Mobile dashboard for managers
+
+These improvements would make the system more robust, scalable, and suitable for production use in large retail operations.
 
 ---
