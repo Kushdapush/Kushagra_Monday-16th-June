@@ -2,3 +2,6 @@ tasks.md
 data
 .env
 env
+__pycache__
+scripts
+reports
