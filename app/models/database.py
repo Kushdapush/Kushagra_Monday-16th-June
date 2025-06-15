@@ -4,7 +4,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 import os
+import pytz
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 
 load_dotenv()
 
@@ -19,7 +21,7 @@ class StoreStatus(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     store_id = Column(String, index=True)
-    timestamp_utc = Column(DateTime)
+    timestamp_utc = Column(DateTime(timezone=True))  # Make timezone-aware
     status = Column(String)  # 'active' or 'inactive'
 
 class BusinessHours(Base):
@@ -43,11 +45,20 @@ class ReportStatus(Base):
     
     report_id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     status = Column(String, default="Running")  # 'Running', 'Complete', 'Failed'
-    created_at = Column(DateTime)
-    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True))  # Make timezone-aware
+    completed_at = Column(DateTime(timezone=True), nullable=True)  # Make timezone-aware
     file_path = Column(String, nullable=True)
 
 def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@asynccontextmanager
+async def get_db_session():
+    """Async context manager for database sessions"""
     db = SessionLocal()
     try:
         yield db
