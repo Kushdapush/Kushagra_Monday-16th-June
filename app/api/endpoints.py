@@ -46,7 +46,7 @@ async def get_report(report_id: str):
 async def get_max_timestamp(db: Session = Depends(get_db)):
     """Get the dynamic maximum timestamp from data"""
     processor = DataProcessor(db)
-    max_timestamp = await processor.get_max_timestamp()
+    max_timestamp = processor.get_max_timestamp()
     
     return {
         "max_timestamp": max_timestamp.isoformat(),
@@ -86,7 +86,7 @@ async def get_stores_with_downtime(db: Session = Depends(get_db)):
 async def get_store_debug_info(store_id: str, db: Session = Depends(get_db)):
     """Get debug info for a specific store"""
     processor = DataProcessor(db)
-    max_timestamp = await processor.get_max_timestamp()
+    max_timestamp = processor.get_max_timestamp()
     
     # Get recent observations
     from datetime import timedelta

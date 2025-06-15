@@ -225,7 +225,7 @@ class DataProcessor:
         return total_uptime, total_downtime
     
     def calculate_store_metrics(self, store_id: str) -> dict:
-        """Calculate uptime/downtime metrics for a store using dynamic max timestamp (synchronous)"""
+        """Calculate uptime/downtime metrics for a store using dynamic max timestamp"""
         # Get dynamic max timestamp (now synchronous)
         max_timestamp = self.get_max_timestamp()
         
@@ -237,9 +237,6 @@ class DataProcessor:
         # Get store configuration
         timezone_str = self.get_store_timezone(store_id)
         business_hours = self.get_business_hours(store_id)
-        
-        # Calculate metrics for each period
-        metrics = {}
         
         # Last hour
         hour_observations = self.get_store_observations(store_id, last_hour_start, max_timestamp)
@@ -262,13 +259,19 @@ class DataProcessor:
         )
         week_uptime, week_downtime = self.interpolate_status(week_observations, week_business_periods)
         
+        # Ensure non-negative values and proper rounding
+        def safe_round(value, decimals=2):
+            """Round and ensure non-negative"""
+            rounded = round(max(0, value), decimals)
+            return 0.0 if rounded == -0.0 else rounded
+        
         return {
             "store_id": store_id,
-            "uptime_last_hour": round(hour_uptime, 2),
-            "downtime_last_hour": round(hour_downtime, 2),
-            "uptime_last_day": round(day_uptime / 60, 2),  # Convert to hours
-            "downtime_last_day": round(day_downtime / 60, 2),  # Convert to hours
-            "uptime_last_week": round(week_uptime / 60, 2),  # Convert to hours
-            "downtime_last_week": round(week_downtime / 60, 2),  # Convert to hours
+            "uptime_last_hour": safe_round(hour_uptime),
+            "downtime_last_hour": safe_round(hour_downtime),
+            "uptime_last_day": safe_round(day_uptime / 60),  # Convert to hours
+            "downtime_last_day": safe_round(day_downtime / 60),  # Convert to hours
+            "uptime_last_week": safe_round(week_uptime / 60),  # Convert to hours
+            "downtime_last_week": safe_round(week_downtime / 60),  # Convert to hours
             "report_timestamp": max_timestamp.isoformat()
         }
